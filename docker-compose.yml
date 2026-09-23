@@ -3,7 +3,7 @@ services:
     build: .
     container_name: ${CONTAINER_NAME:-petition-agro}
     ports:
-      - "${PORT:-3000}:80"
+      - "${PORT:-3000}:3000"
     restart: ${RESTART_POLICY:-unless-stopped}
     environment:
       - TZ=${TZ:-Europe/Paris}

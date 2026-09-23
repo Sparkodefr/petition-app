@@ -19,7 +19,7 @@ jobs:
 
       - name: Smoke test
         run: |
-          docker run -d --name petition -p 8080:80 petition-app:ci
+          docker run -d --name petition -p 8080:3000 petition-app:ci
           for i in $(seq 1 15); do
             curl -fs http://localhost:8080/health && break
             sleep 1

@@ -49,13 +49,13 @@ petition-app/
    _(ou **Public Repository** si le dépôt est public)_
 2. Dépôt : `Sparkodefr/petition-app`, branche `main`
 3. **Build Pack : `Dockerfile`**
-4. **Ports Exposes : `80`**
+4. **Ports Exposes : `3000`** (valeur par défaut de Coolify)
 5. **Domains** : `https://petition.mondomaine.fr` (Coolify gère le certificat SSL)
 6. **Health check** (optionnel) : chemin `/health`
 7. Cliquez **Deploy** 🚀
 
 > 💡 Le Build Pack `Docker Compose` fonctionne aussi, mais `Dockerfile` est plus simple :
-> Coolify route directement le domaine vers le port 80 du conteneur, sans exposer de port sur l'hôte.
+> Coolify route directement le domaine vers le port 3000 du conteneur, sans exposer de port sur l'hôte.
 
 ### 2. Déploiement automatique (CI/CD)
 
@@ -160,7 +160,7 @@ docker ps
 docker logs petition-agro
 docker compose restart petition
 ```
-Sur Coolify : consultez l'onglet **Logs** / **Deployments** de la ressource et vérifiez que *Ports Exposes* vaut `80`.
+Sur Coolify : consultez l'onglet **Logs** / **Deployments** de la ressource et vérifiez que *Ports Exposes* vaut `3000`.
 
 **Les signatures ne se sauvegardent pas**
 Le stockage local est probablement désactivé (ou navigation privée). Activez-le dans les paramètres du navigateur puis rechargez la page.
