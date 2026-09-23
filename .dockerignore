@@ -1,0 +1,9 @@
+.git
+.github
+docs
+scripts
+*.md
+*.zip
+.env
+.env.*
+docker-compose*.yml

@@ -1,0 +1,50 @@
+name: CI / Déploiement Coolify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build de l'image Docker
+        run: docker build -t petition-app:ci .
+
+      - name: Smoke test
+        run: |
+          docker run -d --name petition -p 8080:80 petition-app:ci
+          for i in $(seq 1 15); do
+            curl -fs http://localhost:8080/health && break
+            sleep 1
+          done
+          curl -fs http://localhost:8080/ | grep -q "Pétition"
+          echo "✓ La pétition est servie correctement"
+
+      - name: Logs en cas d'échec
+        if: failure()
+        run: docker logs petition || true
+
+  deploy:
+    name: Déclencher le déploiement Coolify
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appel du webhook Coolify
+        env:
+          COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -z "$COOLIFY_WEBHOOK" ] || [ -z "$COOLIFY_TOKEN" ]; then
+            echo "::notice::Secrets COOLIFY_WEBHOOK / COOLIFY_TOKEN non définis : déploiement ignoré."
+            exit 0
+          fi
+          curl -fsS --request GET "$COOLIFY_WEBHOOK" \
+            --header "Authorization: Bearer $COOLIFY_TOKEN"

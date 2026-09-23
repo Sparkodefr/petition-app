@@ -1,0 +1,25 @@
+# Environnement
+.env
+.env.*
+!.env.example
+
+# Dépendances
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Archives / exports de données (signatures = données personnelles)
+*.zip
+*.csv
+petition_signatures*.json
+petition_signatures*.csv
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
