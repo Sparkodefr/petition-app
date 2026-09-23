@@ -13,7 +13,9 @@ const ADMIN_USER = process.env.ADMIN_USER || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const MAX_BODY = 512 * 1024;
 
-const PUBLIC_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
+const ROOT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
+const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
+const ADMIN_DIR = path.join(ROOT_DIR, 'admin');
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -52,6 +54,12 @@ const appVersion = crypto.createHash('sha256').update(staticFiles.get('/app.js')
 const index = staticFiles.get('/index.html');
 index.body = Buffer.from(index.body.toString('utf8').replace('src="/app.js"', `src="/app.js?v=${appVersion}"`));
 staticFiles.set('/', index);
+
+// Espace organisateurs (servi uniquement après authentification).
+// Pas d'extension dans les URL : Cloudflare met en cache les .js / .pdf / .png par défaut.
+const adminPage = fs.readFileSync(path.join(ADMIN_DIR, 'index.html'));
+const adminScript = fs.readFileSync(path.join(ADMIN_DIR, 'admin.js'));
+const ADMIN_NO_CACHE = { 'Cache-Control': 'private, no-store' };
 
 // Limitation simple des envois par IP (anti-spam)
 const RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -156,29 +164,63 @@ async function handle(req, res) {
     return json(res, created ? 201 : 200, { ok: true, count: store.count() });
   }
 
-  // Pas d'extension .pdf dans l'URL : Cloudflare met en cache les .pdf par défaut
-  if (route === 'GET /admin/export') {
-    if (!ADMIN_PASSWORD) return send(res, 503, 'Export désactivé : définir ADMIN_PASSWORD\n', { 'Content-Type': 'text/plain; charset=utf-8' });
-    if (!isAdmin(req)) {
-      await new Promise((r) => setTimeout(r, 1000));
-      return send(res, 401, 'Authentification requise\n', {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'WWW-Authenticate': 'Basic realm="Export petition", charset="UTF-8"',
-      });
-    }
-    const day = new Date().toISOString().slice(0, 10);
-    res.writeHead(200, {
-      ...SECURITY_HEADERS,
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="petition-agro-bioenergies-${day}.pdf"`,
-      'Cache-Control': 'private, no-store',
-    });
-    return renderPetitionPdf(store.all(), res);
-  }
+  if (url.pathname === '/admin' || url.pathname.startsWith('/admin/')) return handleAdmin(req, res, url);
 
   if (req.method === 'GET' || req.method === 'HEAD') {
     const file = staticFiles.get(url.pathname);
     if (file) return send(res, 200, req.method === 'HEAD' ? undefined : file.body, { 'Content-Type': file.type, 'Cache-Control': 'no-cache' });
+  }
+
+  return send(res, 404, 'Not found\n', { 'Content-Type': 'text/plain' });
+}
+
+async function handleAdmin(req, res, url) {
+  if (!ADMIN_PASSWORD) return send(res, 503, 'Espace organisateurs désactivé : définir ADMIN_PASSWORD\n', { 'Content-Type': 'text/plain; charset=utf-8' });
+  if (!isAdmin(req)) {
+    await new Promise((r) => setTimeout(r, 1000));
+    return send(res, 401, 'Authentification requise\n', {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'WWW-Authenticate': 'Basic realm="Organisateurs petition", charset="UTF-8"',
+    });
+  }
+
+  const route = `${req.method} ${url.pathname}`;
+  if (route === 'GET /admin') return send(res, 301, '', { Location: '/admin/' });
+  if (route === 'GET /admin/') return send(res, 200, adminPage, { 'Content-Type': MIME['.html'], ...ADMIN_NO_CACHE });
+  if (route === 'GET /admin/script') return send(res, 200, adminScript, { 'Content-Type': MIME['.js'], ...ADMIN_NO_CACHE });
+
+  if (route === 'GET /admin/export') {
+    const day = new Date().toISOString().slice(0, 10);
+    res.writeHead(200, {
+      ...SECURITY_HEADERS,
+      ...ADMIN_NO_CACHE,
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="petition-agro-bioenergies-${day}.pdf"`,
+    });
+    return renderPetitionPdf(store.all(), res);
+  }
+
+  if (route === 'GET /admin/api/signatures') {
+    const list = store.all().map(({ signature, ...rest }) => rest);
+    return json(res, 200, { count: list.length, signatures: list });
+  }
+
+  const m = /^\/admin\/api\/signatures\/([\w-]{8,64})(\/signature)?$/.exec(url.pathname);
+  if (m && req.method === 'GET' && m[2]) {
+    const sig = store.all().find((s) => s.id === m[1]);
+    if (!sig) return send(res, 404, 'Not found\n', { 'Content-Type': 'text/plain' });
+    const png = Buffer.from(sig.signature.split(',')[1] || '', 'base64');
+    return send(res, 200, png, { 'Content-Type': 'image/png', ...ADMIN_NO_CACHE });
+  }
+
+  if (m && req.method === 'DELETE' && !m[2]) {
+    // Protection CSRF : la requête doit venir de cette même origine
+    const origin = req.headers.origin;
+    if (origin && new URL(origin).host !== req.headers.host) return json(res, 403, { error: 'Origine refusée' });
+    const removed = store.remove(m[1]);
+    if (!removed) return json(res, 404, { error: 'Signature introuvable' });
+    console.log(`[admin] signature supprimée : ${removed.id} (${removed.nom} ${removed.prenom})`);
+    return json(res, 200, { ok: true, count: store.count() });
   }
 
   return send(res, 404, 'Not found\n', { 'Content-Type': 'text/plain' });

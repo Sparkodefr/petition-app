@@ -1,6 +1,7 @@
 // Stockage des signatures dans un fichier NDJSON (une signature JSON par ligne).
-// Écriture en ajout seul : une coupure ne peut corrompre que la dernière ligne,
-// qui est alors ignorée au chargement.
+// Ajouts en fin de fichier : une coupure ne peut corrompre que la dernière ligne,
+// qui est alors ignorée au chargement. Les suppressions réécrivent le fichier
+// de façon atomique (fichier temporaire puis renommage).
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -28,7 +29,7 @@ export function createStore(dataDir) {
     }
   }
 
-  const fd = fs.openSync(file, 'a');
+  let fd = fs.openSync(file, 'a');
 
   return {
     file,
@@ -42,6 +43,24 @@ export function createStore(dataDir) {
       ids.add(sig.id);
       signatures.push(sig);
       return true;
+    },
+    remove(id) {
+      const index = signatures.findIndex((s) => s.id === id);
+      if (index === -1) return null;
+      const remaining = signatures.filter((s) => s.id !== id);
+
+      const tmp = `${file}.tmp`;
+      const tmpFd = fs.openSync(tmp, 'w');
+      fs.writeSync(tmpFd, remaining.map((s) => JSON.stringify(s) + '\n').join(''));
+      fs.fsyncSync(tmpFd);
+      fs.closeSync(tmpFd);
+      fs.closeSync(fd);
+      fs.renameSync(tmp, file);
+      fd = fs.openSync(file, 'a');
+
+      const [removed] = signatures.splice(index, 1);
+      ids.delete(id);
+      return removed;
     },
   };
 }

@@ -14,7 +14,8 @@ Petite application Node.js (une seule dépendance) avec stockage fichier et expo
 - **Signatures centralisées sur le serveur** : fichier NDJSON sur volume persistant, sans base de données
 - Compteur global de signataires (toutes tablettes confondues)
 - **Mode hors-ligne** : sans réseau, la signature est gardée sur la tablette et envoyée automatiquement au retour de la connexion
-- **Export PDF** prêt à remettre (texte de la pétition + tableau des signataires avec signatures), protégé par mot de passe
+- **Espace organisateurs** protégé par mot de passe : liste des signatures, recherche, suppression d'une ligne erronée
+- **Export PDF** prêt à remettre (texte de la pétition + tableau des signataires avec signatures)
 
 ---
 
@@ -25,6 +26,9 @@ petition-app/
 ├── public/
 │   ├── index.html            # La pétition
 │   └── app.js                # Signature, envoi, file hors-ligne
+├── admin/
+│   ├── index.html            # Espace organisateurs
+│   └── admin.js              # Liste, recherche, suppression
 ├── server/
 │   ├── server.js             # Serveur HTTP (page, API, export)
 │   ├── storage.js            # Stockage fichier NDJSON
@@ -122,10 +126,19 @@ docker compose up -d --build
 
 ---
 
-## 📄 Export PDF
+## 🔐 Espace organisateurs
 
-Ouvrez **`https://petition.mondomaine.fr/admin/export`** (lien « Export PDF (organisateurs) » en bas de page),
+Ouvrez **`https://petition.mondomaine.fr/admin/`** (lien « Espace organisateurs » en bas de la pétition),
 puis saisissez `ADMIN_USER` / `ADMIN_PASSWORD`.
+
+- **Liste** de toutes les signatures (nom, adresse, contact, date, signature) avec **recherche**
+- **Supprimer** : retire définitivement une signature (erreur de saisie, doublon, demande de suppression RGPD).
+  Une confirmation est demandée ; la suppression est tracée dans les logs du conteneur (`[admin] signature supprimée`).
+- **Télécharger le PDF** (également accessible directement via `/admin/export`)
+
+> Pour corriger une signature erronée : la supprimer puis faire signer à nouveau la personne.
+
+## 📄 Export PDF
 
 Le PDF contient le texte de la pétition, le nombre de signataires et le tableau **N° / Nom et prénom / Adresse / Date / Signature**.
 Le téléphone et l'email sont conservés dans les données mais **n'apparaissent pas** sur le PDF remis.
@@ -187,7 +200,7 @@ Testez d'abord au doigt, vérifiez l'appairage du stylet, puis relancez le navig
 |-------------|--------------------------------------------------------------------|
 | Semaine 1   | Déployer sur Coolify, tester depuis la tablette                    |
 | Semaines 2–3| Porte-à-porte avec les tablettes (suivi du compteur global)        |
-| Semaine 4   | Export PDF final depuis `/admin/export`                        |
+| Semaine 4   | Vérification/nettoyage dans `/admin/`, puis export PDF final       |
 | Envoi       | Imprimer le PDF ou le joindre au courrier aux autorités            |
 
 ---

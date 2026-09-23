@@ -33,7 +33,10 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/admin/export)" = 401
           curl -fs -u admin:ci-secret http://localhost:8080/admin/export -o export.pdf
           head -c 5 export.pdf | grep -q '%PDF'
-          echo "✓ Page, API et export PDF fonctionnels"
+          curl -fs -u admin:ci-secret http://localhost:8080/admin/api/signatures | grep -q 'ci-test-0001'
+          curl -fs -u admin:ci-secret -X DELETE http://localhost:8080/admin/api/signatures/ci-test-0001
+          curl -fs http://localhost:8080/api/stats | grep -q '"count":0'
+          echo "✓ Page, API, export PDF et suppression fonctionnels"
 
       - name: Logs en cas d'échec
         if: failure()

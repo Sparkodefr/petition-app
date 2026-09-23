@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Espace organisateurs – Pétition Agro Bioénergies</title>
+    <style>
+        :root {
+            --accent: #1e3a5f;
+            --ink: #1f2937;
+            --muted: #6b7280;
+            --line: #d1d5db;
+            --bg: #f3f4f6;
+            --danger: #b91c1c;
+            --ok: #166534;
+            --ok-bg: #dcfce7;
+            --err-bg: #fee2e2;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            line-height: 1.5;
+        }
+
+        header {
+            background: var(--accent);
+            color: #fff;
+            padding: 18px 24px;
+        }
+        header .kicker { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.8; }
+        header h1 { font-size: 20px; }
+
+        main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 40px; }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .toolbar .count { font-size: 15px; margin-right: auto; }
+        .toolbar .count strong { font-size: 20px; color: var(--accent); }
+
+        input[type="search"] {
+            padding: 9px 12px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 15px;
+            min-width: 240px;
+            font-family: inherit;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 9px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid var(--accent);
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-danger { background: #fff; color: var(--danger); border-color: var(--danger); padding: 6px 12px; font-size: 13px; }
+        .btn-danger:hover { background: var(--danger); color: #fff; }
+        .btn:disabled { opacity: 0.5; cursor: wait; }
+
+        .message { padding: 10px 14px; border-radius: 6px; margin-bottom: 14px; font-size: 14px; display: none; }
+        .message.success { background: var(--ok-bg); color: var(--ok); }
+        .message.error { background: var(--err-bg); color: var(--danger); }
+
+        .table-wrap { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+        th { background: #f9fafb; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
+        tr:last-child td { border-bottom: none; }
+        td.num { color: var(--muted); width: 1%; }
+        td.sig img { height: 40px; width: 120px; object-fit: contain; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+        td.actions { width: 1%; white-space: nowrap; }
+        .small { font-size: 12px; color: var(--muted); }
+        .empty { padding: 30px; text-align: center; color: var(--muted); }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="kicker">Espace organisateurs</div>
+        <h1>Pétition – Nuisances olfactives Agro Bioénergies</h1>
+    </header>
+
+    <main>
+        <div class="toolbar">
+            <div class="count">Signataires : <strong id="count">–</strong></div>
+            <input type="search" id="search" placeholder="Rechercher (nom, adresse, téléphone…)" aria-label="Rechercher">
+            <a class="btn" href="/admin/export">Télécharger le PDF</a>
+        </div>
+
+        <div class="message" id="message" role="status" aria-live="polite"></div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N°</th>
+                        <th>Nom et prénom</th>
+                        <th>Adresse</th>
+                        <th>Contact</th>
+                        <th>Date</th>
+                        <th>Signature</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="rows"></tbody>
+            </table>
+            <div class="empty" id="empty" hidden>Aucune signature.</div>
+        </div>
+    </main>
+
+    <script src="/admin/script"></script>
+</body>
+</html>

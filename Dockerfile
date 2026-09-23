@@ -11,6 +11,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 
 COPY server/ ./server/
 COPY public/ ./public/
+COPY admin/ ./admin/
 
 # Dossier des signatures (à monter en volume persistant)
 RUN mkdir -p /data && chown node:node /data
