@@ -124,7 +124,7 @@ docker compose up -d --build
 
 ## 📄 Export PDF
 
-Ouvrez **`https://petition.mondomaine.fr/admin/export.pdf`** (lien « Export PDF (organisateurs) » en bas de page),
+Ouvrez **`https://petition.mondomaine.fr/admin/export`** (lien « Export PDF (organisateurs) » en bas de page),
 puis saisissez `ADMIN_USER` / `ADMIN_PASSWORD`.
 
 Le PDF contient le texte de la pétition, le nombre de signataires et le tableau **N° / Nom et prénom / Adresse / Date / Signature**.
@@ -187,7 +187,7 @@ Testez d'abord au doigt, vérifiez l'appairage du stylet, puis relancez le navig
 |-------------|--------------------------------------------------------------------|
 | Semaine 1   | Déployer sur Coolify, tester depuis la tablette                    |
 | Semaines 2–3| Porte-à-porte avec les tablettes (suivi du compteur global)        |
-| Semaine 4   | Export PDF final depuis `/admin/export.pdf`                        |
+| Semaine 4   | Export PDF final depuis `/admin/export`                        |
 | Envoi       | Imprimer le PDF ou le joindre au courrier aux autorités            |
 
 ---

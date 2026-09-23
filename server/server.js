@@ -47,7 +47,11 @@ for (const name of fs.readdirSync(PUBLIC_DIR)) {
   const ext = path.extname(name);
   if (MIME[ext]) staticFiles.set(`/${name}`, { body: fs.readFileSync(path.join(PUBLIC_DIR, name)), type: MIME[ext] });
 }
-staticFiles.set('/', staticFiles.get('/index.html'));
+// Version de app.js dans l'URL : un proxy/CDN (Cloudflare) ne peut pas servir un script périmé
+const appVersion = crypto.createHash('sha256').update(staticFiles.get('/app.js').body).digest('hex').slice(0, 12);
+const index = staticFiles.get('/index.html');
+index.body = Buffer.from(index.body.toString('utf8').replace('src="/app.js"', `src="/app.js?v=${appVersion}"`));
+staticFiles.set('/', index);
 
 // Limitation simple des envois par IP (anti-spam)
 const RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -152,7 +156,8 @@ async function handle(req, res) {
     return json(res, created ? 201 : 200, { ok: true, count: store.count() });
   }
 
-  if (route === 'GET /admin/export.pdf') {
+  // Pas d'extension .pdf dans l'URL : Cloudflare met en cache les .pdf par défaut
+  if (route === 'GET /admin/export') {
     if (!ADMIN_PASSWORD) return send(res, 503, 'Export désactivé : définir ADMIN_PASSWORD\n', { 'Content-Type': 'text/plain; charset=utf-8' });
     if (!isAdmin(req)) {
       await new Promise((r) => setTimeout(r, 1000));
@@ -166,7 +171,7 @@ async function handle(req, res) {
       ...SECURITY_HEADERS,
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="petition-agro-bioenergies-${day}.pdf"`,
-      'Cache-Control': 'no-store',
+      'Cache-Control': 'private, no-store',
     });
     return renderPetitionPdf(store.all(), res);
   }
