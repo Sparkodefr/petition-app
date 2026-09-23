@@ -34,7 +34,7 @@ fi
 echo -e "${GREEN}✓ ($COMPOSE)${NC}"
 
 # Fichiers requis
-for f in public/index.html Dockerfile docker-compose.yml nginx/default.conf; do
+for f in public/index.html server/server.js package.json Dockerfile docker-compose.yml; do
     [ -f "$f" ] || { echo -e "${RED}✗ $f manquant${NC}"; exit 1; }
 done
 echo -e "${GREEN}✓ Fichiers présents${NC}"
@@ -44,6 +44,10 @@ echo -e "${GREEN}✓ Fichiers présents${NC}"
 set -a; source .env; set +a
 PORT="${PORT:-3000}"
 CONTAINER_NAME="${CONTAINER_NAME:-petition-agro}"
+if [ -z "${ADMIN_PASSWORD:-}" ] || [ "$ADMIN_PASSWORD" = "changez-moi" ]; then
+    echo -e "${RED}✗ Définissez ADMIN_PASSWORD dans .env (mot de passe de l'export PDF)${NC}"
+    exit 1
+fi
 
 echo ""
 echo "Construction et démarrage..."
@@ -77,5 +81,5 @@ echo "  Logs       : docker logs -f ${CONTAINER_NAME}"
 echo "  Redémarrer : $COMPOSE restart petition"
 echo "  Arrêter    : $COMPOSE down"
 echo ""
-echo "💾 Les signatures sont stockées dans le navigateur de CHAQUE tablette."
-echo "   Exportez-les régulièrement (CSV) depuis la page !"
+echo "💾 Signatures stockées dans le volume Docker 'petition-data' (/data/signatures.ndjson)"
+echo "📄 Export PDF : http://localhost:${PORT}/admin/export.pdf (identifiants ADMIN_USER / ADMIN_PASSWORD)"

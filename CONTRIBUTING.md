@@ -8,16 +8,17 @@ Merci de votre intérêt pour le projet ! Voici comment contribuer.
    ```bash
    git checkout -b feat/ma-modification
    ```
-2. Faites vos modifications (la page est dans `public/index.html`).
+2. Faites vos modifications (page : `public/`, serveur : `server/`).
 3. Testez en local :
    ```bash
-   docker compose up -d --build
-   # → http://localhost:3000
+   npm install
+   npm run dev
+   # → http://localhost:3000 (données dans ./data, export PDF : admin / admin)
    ```
 4. Commitez avec un message clair (convention [Conventional Commits](https://www.conventionalcommits.org/fr/) recommandée) :
    ```
    feat: ajout d'un champ commune
-   fix: correction de l'export CSV sur Safari
+   fix: correction de l'export PDF sur Safari
    docs: mise à jour du guide Coolify
    ```
 5. Poussez et ouvrez une Pull Request vers `main`. La CI construit l'image et vérifie que la page est servie.
@@ -27,7 +28,8 @@ Merci de votre intérêt pour le projet ! Voici comment contribuer.
 ## Règles
 
 - **Aucune donnée personnelle dans le dépôt** : ne commitez jamais d'export de signatures (`.csv`, `.json`) ni de fichier `.env`.
-- La page doit rester **autonome** (un seul fichier HTML, sans dépendance externe) pour fonctionner hors-ligne sur tablette.
+- La page ne doit charger **aucune ressource externe** (CDN, polices...) : elle doit fonctionner avec un réseau instable.
+- Limitez les dépendances npm au strict nécessaire (actuellement : `pdfkit`).
 - Testez sur tablette (tactile + stylet) toute modification de la zone de signature.
 - Gardez le français comme langue de l'interface et de la documentation.
 

@@ -19,13 +19,21 @@ jobs:
 
       - name: Smoke test
         run: |
-          docker run -d --name petition -p 8080:3000 petition-app:ci
+          docker run -d --name petition -p 8080:3000 -e ADMIN_PASSWORD=ci-secret petition-app:ci
           for i in $(seq 1 15); do
             curl -fs http://localhost:8080/health && break
             sleep 1
           done
           curl -fs http://localhost:8080/ | grep -q "Pétition"
-          echo "✓ La pétition est servie correctement"
+          PNG="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+          curl -fs -H 'Content-Type: application/json' \
+            -d "{\"id\":\"ci-test-0001\",\"nom\":\"Test\",\"prenom\":\"CI\",\"adresse\":\"1 rue du Test\",\"telephone\":\"0600000000\",\"signature\":\"$PNG\",\"createdAt\":\"2026-01-01T00:00:00Z\"}" \
+            http://localhost:8080/api/signatures
+          curl -fs http://localhost:8080/api/stats | grep -q '"count":1'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/admin/export.pdf)" = 401
+          curl -fs -u admin:ci-secret http://localhost:8080/admin/export.pdf -o export.pdf
+          head -c 5 export.pdf | grep -q '%PDF'
+          echo "✓ Page, API et export PDF fonctionnels"
 
       - name: Logs en cas d'échec
         if: failure()

@@ -4,17 +4,17 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **Pétition interactive avec signature numérique au stylet**, pensée pour le porte-à-porte sur tablette.
-Une page HTML statique servie par nginx, déployable en quelques minutes sur [Coolify](https://coolify.io).
+Petite application Node.js (une seule dépendance) avec stockage fichier et export PDF, déployable en quelques minutes sur [Coolify](https://coolify.io).
 
 ---
 
 ## ✨ Fonctionnalités
 
-- Formulaire de signature + zone de signature au doigt ou au stylet
-- Compteur de signatures collectées (par appareil)
-- Export **CSV** (Excel / LibreOffice) et **JSON**
-- Fonctionne **hors-ligne** une fois la page chargée
-- Aucune base de données, aucun login : les données restent dans le navigateur (`localStorage`)
+- Formulaire + zone de signature au doigt ou au stylet
+- **Signatures centralisées sur le serveur** : fichier NDJSON sur volume persistant, sans base de données
+- Compteur global de signataires (toutes tablettes confondues)
+- **Mode hors-ligne** : sans réseau, la signature est gardée sur la tablette et envoyée automatiquement au retour de la connexion
+- **Export PDF** prêt à remettre (texte de la pétition + tableau des signataires avec signatures), protégé par mot de passe
 
 ---
 
@@ -23,17 +23,20 @@ Une page HTML statique servie par nginx, déployable en quelques minutes sur [Co
 ```
 petition-app/
 ├── public/
-│   └── index.html            # La pétition (page autonome)
-├── nginx/
-│   └── default.conf          # Config nginx (gzip, sécurité, /health)
+│   ├── index.html            # La pétition
+│   └── app.js                # Signature, envoi, file hors-ligne
+├── server/
+│   ├── server.js             # Serveur HTTP (page, API, export)
+│   ├── storage.js            # Stockage fichier NDJSON
+│   ├── pdf.js                # Génération du PDF
+│   └── petition.js           # Textes de la pétition (PDF)
 ├── scripts/
 │   └── deploy.sh             # Déploiement manuel sur un serveur Docker
-├── docs/
-│   └── GUIDE_COOLIFY.md      # Guide Coolify détaillé
 ├── .github/workflows/
 │   └── deploy.yml            # CI : build + test + déploiement Coolify
 ├── Dockerfile
 ├── docker-compose.yml
+├── package.json
 ├── .env.example
 ├── CONTRIBUTING.md
 └── LICENSE
@@ -50,9 +53,11 @@ petition-app/
 2. Dépôt : `Sparkodefr/petition-app`, branche `main`
 3. **Build Pack : `Dockerfile`**
 4. **Ports Exposes : `3000`** (valeur par défaut de Coolify)
-5. **Domains** : `https://petition.mondomaine.fr` (Coolify gère le certificat SSL)
-6. **Health check** (optionnel) : chemin `/health`
-7. Cliquez **Deploy** 🚀
+5. **Domains** : `https://petition.mondomaine.fr` (`http://` si derrière un Cloudflare Tunnel)
+6. **Persistent Storage** → **+ Add** → *Volume* : destination **`/data`** ⚠️ **obligatoire**, sinon les signatures sont perdues à chaque redéploiement
+7. **Environment Variables** : `ADMIN_PASSWORD` (mot de passe de l'export PDF), et optionnellement `ADMIN_USER` (défaut `admin`)
+8. **Health check** (optionnel) : chemin `/health`
+9. Cliquez **Deploy** 🚀
 
 > 💡 Le Build Pack `Docker Compose` fonctionne aussi, mais `Dockerfile` est plus simple :
 > Coolify route directement le domaine vers le port 3000 du conteneur, sans exposer de port sur l'hôte.
@@ -95,6 +100,8 @@ docker compose up -d --build
 
 | Variable         | Défaut           | Description                          |
 |------------------|------------------|--------------------------------------|
+| `ADMIN_PASSWORD` | _(obligatoire)_  | Mot de passe de l'export PDF         |
+| `ADMIN_USER`     | `admin`          | Identifiant de l'export PDF          |
 | `PORT`           | `3000`           | Port exposé sur l'hôte               |
 | `TZ`             | `Europe/Paris`   | Fuseau horaire                       |
 | `CONTAINER_NAME` | `petition-agro`  | Nom du conteneur                     |
@@ -104,39 +111,37 @@ docker compose up -d --build
 
 ## 📱 Utilisation sur tablette
 
-1. Ouvrez le navigateur de la tablette
-2. Allez sur `https://petition.mondomaine.fr` (ou `http://[IP-SERVEUR]:3000` en réseau local)
-3. Remplissez le formulaire + signature au stylet
-4. Cliquez **« Signer »** → la signature est enregistrée sur la tablette
+1. Ouvrez `https://petition.mondomaine.fr` dans le navigateur de la tablette
+2. Le signataire remplit le formulaire et signe dans le cadre
+3. **« Signer la pétition »** → la signature est envoyée au serveur
+4. Sans réseau : message « enregistrée sur cet appareil », puis envoi automatique dès le retour de la connexion
+   (le bandeau indique le nombre de signatures en attente)
 
 > 💡 Ajoutez la page à l'écran d'accueil pour y accéder rapidement.
+> Avant de rendre une tablette, vérifiez que le bandeau affiche « Toutes les signatures sont enregistrées ».
 
 ---
 
-## 📊 Exporter les données
+## 📄 Export PDF
 
-En bas de la page, 3 boutons :
+Ouvrez **`https://petition.mondomaine.fr/admin/export.pdf`** (lien « Export PDF (organisateurs) » en bas de page),
+puis saisissez `ADMIN_USER` / `ADMIN_PASSWORD`.
 
-| Bouton            | Usage                                        |
-|-------------------|----------------------------------------------|
-| 📥 **JSON**       | Données brutes                               |
-| 📊 **Excel/CSV**  | Tableau compatible Excel ← **à privilégier** |
-| 🗑️ **Réinit**     | Efface toutes les signatures (irréversible)  |
+Le PDF contient le texte de la pétition, le nombre de signataires et le tableau **N° / Nom et prénom / Adresse / Date / Signature**.
+Le téléphone et l'email sont conservés dans les données mais **n'apparaissent pas** sur le PDF remis.
+
+Les textes du PDF se modifient dans `server/petition.js` (et ceux de la page dans `public/index.html`).
 
 ---
 
-## 🎯 Informations importantes
+## 💾 Données
 
-### Les données sont 100 % locales
-
-- ✅ Jamais envoyées au serveur, stockées uniquement dans le navigateur de la tablette
-- ⚠️ **Chaque tablette a ses propres signatures** : le compteur et les exports sont par appareil
-- ⚠️ Vider le cache / les données du navigateur **efface les signatures** → **exportez en CSV chaque jour**
-- ⚠️ Les exports contiennent des données personnelles : ne les commitez jamais dans ce dépôt
-
-### Fonctionne hors-ligne
-
-Une fois la page chargée, aucune connexion n'est nécessaire pour collecter des signatures.
+- Fichier : `/data/signatures.ndjson` (une signature JSON par ligne, écriture en ajout seul)
+- Sauvegarde : copier ce fichier suffit
+  ```bash
+  docker cp <conteneur>:/data/signatures.ndjson ./sauvegarde-$(date +%F).ndjson
+  ```
+- ⚠️ Données personnelles (RGPD) : accès restreint, suppression à l'issue de la pétition, ne jamais les committer
 
 ---
 
@@ -162,8 +167,14 @@ docker compose restart petition
 ```
 Sur Coolify : consultez l'onglet **Logs** / **Deployments** de la ressource et vérifiez que *Ports Exposes* vaut `3000`.
 
-**Les signatures ne se sauvegardent pas**
-Le stockage local est probablement désactivé (ou navigation privée). Activez-le dans les paramètres du navigateur puis rechargez la page.
+**Les signatures disparaissent après un redéploiement**
+Le volume persistant `/data` n'est pas configuré dans Coolify (voir étape 6 du déploiement).
+
+**Signatures « en attente d'envoi » qui ne partent pas**
+Vérifiez la connexion de la tablette et que le site répond ; l'envoi est retenté toutes les 30 s. Ne videz pas les données du navigateur tant qu'il reste des signatures en attente.
+
+**L'export PDF répond « Export désactivé »**
+Définissez `ADMIN_PASSWORD` dans les variables d'environnement puis redéployez.
 
 **Le stylet ne fonctionne pas**
 Testez d'abord au doigt, vérifiez l'appairage du stylet, puis relancez le navigateur.
@@ -175,15 +186,14 @@ Testez d'abord au doigt, vérifiez l'appairage du stylet, puis relancez le navig
 | Période     | Actions                                                            |
 |-------------|--------------------------------------------------------------------|
 | Semaine 1   | Déployer sur Coolify, tester depuis la tablette                    |
-| Semaines 2–3| Porte-à-porte avec la tablette, **export CSV quotidien** en backup |
-| Semaine 4   | Export final CSV de chaque tablette, fusion des fichiers           |
-| Envoi       | Imprimer le tableau ou joindre le fichier au courrier à la mairie  |
+| Semaines 2–3| Porte-à-porte avec les tablettes (suivi du compteur global)        |
+| Semaine 4   | Export PDF final depuis `/admin/export.pdf`                        |
+| Envoi       | Imprimer le PDF ou le joindre au courrier aux autorités            |
 
 ---
 
 ## 📞 Ressources
 
-- [Guide Coolify détaillé](docs/GUIDE_COOLIFY.md)
 - [Documentation Coolify](https://coolify.io/docs)
 - [Documentation Docker](https://docs.docker.com)
 

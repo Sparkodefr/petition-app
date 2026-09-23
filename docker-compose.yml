@@ -7,5 +7,12 @@ services:
     restart: ${RESTART_POLICY:-unless-stopped}
     environment:
       - TZ=${TZ:-Europe/Paris}
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?ADMIN_PASSWORD doit être défini dans .env}
+    volumes:
+      - petition-data:/data
     labels:
       - "com.sparkode.description=Pétition Agro Bioénergies"
+
+volumes:
+  petition-data:

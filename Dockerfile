@@ -1,14 +1,24 @@
-FROM nginx:1.27-alpine
+FROM node:22-alpine
 
-# Configuration nginx
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+ENV NODE_ENV=production \
+    PORT=3000 \
+    DATA_DIR=/data
 
-# Page de la pétition
-COPY public/ /usr/share/nginx/html/
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY server/ ./server/
+COPY public/ ./public/
+
+# Dossier des signatures (à monter en volume persistant)
+RUN mkdir -p /data && chown node:node /data
+USER node
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget -qO- http://127.0.0.1:3000/health || exit 1
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server/server.js"]

@@ -1,0 +1,19 @@
+{
+  "name": "petition-app",
+  "version": "2.0.0",
+  "description": "Pétition Agro Bioénergies : collecte de signatures sur tablette, stockage fichier et export PDF",
+  "private": true,
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "DATA_DIR=./data ADMIN_PASSWORD=admin node --watch server/server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "pdfkit": "^0.15.2"
+  }
+}
